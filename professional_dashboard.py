@@ -14,6 +14,7 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import json
 import os
+import pytz
 
 st.set_page_config(
     page_title="🏛️ Professional Trading Monitor",
@@ -22,8 +23,109 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+class ForexMarketScheduler:
+    """Market hours detection for Streamlit dashboard"""
+    
+    def __init__(self):
+        from datetime import time
+        self.sessions = {
+            'sydney': {
+                'timezone': pytz.timezone('Australia/Sydney'),
+                'open': time(8, 0),
+                'close': time(17, 0),
+                'days': [0, 1, 2, 3, 4]
+            },
+            'tokyo': {
+                'timezone': pytz.timezone('Asia/Tokyo'), 
+                'open': time(9, 0),
+                'close': time(18, 0),
+                'days': [0, 1, 2, 3, 4]
+            },
+            'london': {
+                'timezone': pytz.timezone('Europe/London'),
+                'open': time(8, 0),
+                'close': time(17, 0),
+                'days': [0, 1, 2, 3, 4]
+            },
+            'new_york': {
+                'timezone': pytz.timezone('US/Eastern'),
+                'open': time(8, 0),
+                'close': time(17, 0),
+                'days': [0, 1, 2, 3, 4]
+            }
+        }
+    
+    def is_market_open(self):
+        """Check if any major forex market is open"""
+        utc_now = datetime.now(pytz.UTC)
+        active_sessions = []
+        
+        for session_name, session_info in self.sessions.items():
+            if self._is_session_active(utc_now, session_info):
+                active_sessions.append(session_name.title())
+        
+        is_open = len(active_sessions) > 0
+        
+        if is_open:
+            description = f"Markets Open: {', '.join(active_sessions)}"
+        else:
+            next_open = self._get_next_market_open()
+            description = f"Markets Closed - Next open: {next_open}"
+        
+        return is_open, description
+    
+    def _is_session_active(self, utc_time, session_info):
+        """Check if specific session is active"""
+        local_time = utc_time.astimezone(session_info['timezone'])
+        
+        if local_time.weekday() not in session_info['days']:
+            return False
+        
+        current_time = local_time.time()
+        return session_info['open'] <= current_time <= session_info['close']
+    
+    def _get_next_market_open(self):
+        """Get next market opening time"""
+        utc_now = datetime.now(pytz.UTC)
+        next_openings = []
+        
+        for session_name, session_info in self.sessions.items():
+            local_now = utc_now.astimezone(session_info['timezone'])
+            
+            # Check if opens later today
+            if local_now.weekday() in session_info['days']:
+                if local_now.time() < session_info['open']:
+                    next_open_local = local_now.replace(
+                        hour=session_info['open'].hour,
+                        minute=session_info['open'].minute,
+                        second=0, microsecond=0
+                    )
+                    next_open_utc = next_open_local.astimezone(pytz.UTC)
+                    next_openings.append((next_open_utc, session_name.title()))
+            
+            # Check tomorrow
+            tomorrow_local = (local_now + timedelta(days=1)).replace(
+                hour=session_info['open'].hour,
+                minute=session_info['open'].minute,
+                second=0, microsecond=0
+            )
+            
+            if tomorrow_local.weekday() in session_info['days']:
+                tomorrow_utc = tomorrow_local.astimezone(pytz.UTC)
+                next_openings.append((tomorrow_utc, session_name.title()))
+        
+        if next_openings:
+            earliest = min(next_openings, key=lambda x: x[0])
+            hours_until = (earliest[0] - utc_now).total_seconds() / 3600
+            return f"{earliest[1]} in {hours_until:.1f} hours"
+        
+        return "Monday morning"
+
 class ProfessionalTradingDashboard:
     def __init__(self):
+        # Market scheduler for determining if system should be active
+        self.market_scheduler = ForexMarketScheduler()
+        
         # OANDA Configuration - using Streamlit secrets for security
         try:
             self.api_token = st.secrets["OANDA_API_TOKEN"]
@@ -206,9 +308,10 @@ class ProfessionalTradingDashboard:
         
         return health_score, status
     
-    def create_performance_metrics(self):
+    def create_performance_metrics(self, is_market_open=True):
         """Create key performance metrics"""
-        st.markdown("## 📊 KEY PERFORMANCE INDICATORS")
+        header_style = "" if is_market_open else "color: #888888"
+        st.markdown(f"<h2 style='{header_style}'>📊 KEY PERFORMANCE INDICATORS</h2>", unsafe_allow_html=True)
         
         # Get current data
         market_data = self.get_live_data(50)
@@ -253,9 +356,11 @@ class ProfessionalTradingDashboard:
         with col5:
             st.metric("💼 Trades", f"{trades}", "Executed")
     
-    def create_market_conditions_monitor(self):
+    def create_market_conditions_monitor(self, is_market_open=True):
         """Monitor current market conditions for trading"""
-        st.markdown("## 🌍 MARKET CONDITIONS MONITOR")
+        header_style = "" if is_market_open else "color: #888888"
+        status_text = "MARKET CONDITIONS MONITOR" if is_market_open else "MARKET CONDITIONS (INACTIVE)"
+        st.markdown(f"<h2 style='{header_style}'>🌍 {status_text}</h2>", unsafe_allow_html=True)
         
         market_data = self.get_live_data()
         if market_data.empty:
@@ -369,9 +474,14 @@ class ProfessionalTradingDashboard:
                 else:
                     st.error(f"🔴 WAIT FOR BETTER SETUP ({readiness_score}%)")
     
-    def create_system_activity_monitor(self):
+    def create_system_activity_monitor(self, is_market_open=True):
         """Monitor system activity and decisions"""
-        st.markdown("## 🎯 SYSTEM ACTIVITY MONITOR")
+        header_style = "" if is_market_open else "color: #888888"
+        status_text = "SYSTEM ACTIVITY MONITOR" if is_market_open else "SYSTEM ACTIVITY (PAUSED)"
+        st.markdown(f"<h2 style='{header_style}'>🎯 {status_text}</h2>", unsafe_allow_html=True)
+        
+        if not is_market_open:
+            st.info("🔋 System activity paused during market closure for energy conservation")
         
         log_lines = self.read_trading_log()
         
@@ -570,10 +680,25 @@ class ProfessionalTradingDashboard:
     
     def run_dashboard(self):
         """Main dashboard"""
-        st.markdown("### Complete monitoring for Spin36TB system")
+        # Check market status first
+        is_market_open, market_status = self.market_scheduler.is_market_open()
+        
+        if not is_market_open:
+            # Markets closed - show sleep mode
+            st.markdown("### 💤 System in Sleep Mode")
+            st.error(f"⏰ {market_status}")
+            st.info("🔋 Energy conservation mode: Trading system paused until markets reopen")
+            st.markdown("---")
+            
+            # Show dimmed indicators
+            st.markdown("### 📊 Market Data (Inactive)")
+        else:
+            # Markets open - normal display
+            st.markdown("### Complete monitoring for Spin36TB system")
         
         # Auto-refresh indicator
-        st.markdown(f"🔄 Last updated: {datetime.now().strftime('%H:%M:%S')} (refreshes every 10 seconds)")
+        refresh_color = "#666666" if not is_market_open else "#000000"
+        st.markdown(f"<div style='color: {refresh_color}'>🔄 Last updated: {datetime.now().strftime('%H:%M:%S')} (refreshes every 10 seconds)</div>", unsafe_allow_html=True)
         
         # Discrete account balance at top
         account_info = self.get_virtual_account_info()
@@ -588,18 +713,18 @@ class ProfessionalTradingDashboard:
             else:
                 st.markdown(f"<div style='text-align: right; color: #ff4444; font-size: 14px; margin-bottom: 10px;'>Balance: ${current_balance:,.2f} (${pnl:,.2f} | {pnl_pct:.2f}%)</div>", unsafe_allow_html=True)
         
-        # Key Performance Indicators
-        self.create_performance_metrics()
+        # Key Performance Indicators (pass market status)
+        self.create_performance_metrics(is_market_open)
         
         st.divider()
         
-        # Market Conditions
-        self.create_market_conditions_monitor()
+        # Market Conditions (pass market status)
+        self.create_market_conditions_monitor(is_market_open)
         
         st.divider()
         
-        # System Activity
-        self.create_system_activity_monitor()
+        # System Activity (pass market status)
+        self.create_system_activity_monitor(is_market_open)
         
         st.divider()
         
