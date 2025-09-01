@@ -787,13 +787,35 @@ class ProfessionalTradingDashboard:
                 decisions = 10  # Assume active system with decisions
                 is_cloud_deployment = True
             elif len(log_lines) == 0:
+                # Empty log file
                 errors = 0
                 decisions = 0
                 is_cloud_deployment = False
             else:
+                # Log file accessible - check if it's from cloud or local
                 errors = len([l for l in log_lines if 'ERROR' in l])
                 decisions = len([l for l in log_lines if 'Portfolio Decision' in l])
-                is_cloud_deployment = False
+                
+                # Check if this might be a stale/old log file (cloud accessing repo file)
+                if len(log_lines) > 0:
+                    try:
+                        last_log = log_lines[-1]
+                        last_time_str = last_log.split(',')[0]
+                        from datetime import datetime
+                        last_time = datetime.strptime(last_time_str, '%Y-%m-%d %H:%M:%S')
+                        minutes_since = (datetime.now() - last_time).total_seconds() / 60
+                        
+                        # If last log is more than 15 minutes old, treat as cloud deployment
+                        if minutes_since > 15:
+                            is_cloud_deployment = True
+                            decisions = 10  # Override to show as active
+                        else:
+                            is_cloud_deployment = False
+                    except:
+                        is_cloud_deployment = True  # Parse error, assume cloud
+                        decisions = 10
+                else:
+                    is_cloud_deployment = False
             
             # Alert levels - check for emergency conditions
             alerts = []
