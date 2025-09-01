@@ -632,9 +632,16 @@ class ProfessionalTradingDashboard:
             with col2:
                 st.markdown("### 📊 Session Stats")
                 
-                # Calculate simulated stats based on active system
-                estimated_decisions = int((datetime.now().hour - 8) * 12)  # ~12 per hour during trading
-                if estimated_decisions < 0:
+                # Calculate simulated stats based on active system (decisions every 5 minutes = 12 per hour)
+                current_hour = datetime.now().hour
+                current_minute = datetime.now().minute
+                
+                # Calculate total minutes since 8 AM
+                if current_hour >= 8:
+                    minutes_since_8am = (current_hour - 8) * 60 + current_minute
+                    # One decision every 5 minutes
+                    estimated_decisions = max(0, int(minutes_since_8am / 5))
+                else:
                     estimated_decisions = 0
                 
                 st.metric("Total Decisions", f"~{estimated_decisions}")
@@ -645,8 +652,8 @@ class ProfessionalTradingDashboard:
                 st.metric("Decision Interval", "5.0 min")
                 
                 # Show estimated system uptime
-                uptime_hours = max(0, datetime.now().hour - 8)  # Assuming started at 8 AM
-                if uptime_hours > 0:
+                if current_hour >= 8:
+                    uptime_hours = minutes_since_8am / 60.0
                     st.metric("System Uptime", f"~{uptime_hours:.1f} hours")
                 else:
                     st.metric("System Uptime", "Active")
