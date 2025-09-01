@@ -819,10 +819,10 @@ class ProfessionalTradingDashboard:
                 alerts.append(f"⚠️ {errors} system errors detected")
             
             # EMERGENCY: System stuck/dead (but account for cloud deployment)
-            if decisions == 0 and not is_cloud_deployment:
-                alerts.append("🔴 System not making decisions")
-            elif is_cloud_deployment:
+            if is_cloud_deployment:
                 alerts.append("🟢 Cloud monitoring - System active")
+            elif decisions == 0:
+                alerts.append("🔴 System not making decisions")
             elif decisions < 5:
                 alerts.append("🟡 System recently started")
             
