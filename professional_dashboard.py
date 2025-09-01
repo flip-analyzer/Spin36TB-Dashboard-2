@@ -878,89 +878,252 @@ class ProfessionalTradingDashboard:
                         st.warning(alert)
     
     def run_dashboard(self):
-        """Main dashboard"""
+        """Professional dashboard with organized layout"""
         # Check market status first
         is_market_open, market_status = self.market_scheduler.is_market_open()
-        
-        # Check if trading system is actually running
         system_running = self.check_system_running_status()
         
-        # Display system status
-        self.display_system_status(is_market_open, market_status, system_running)
+        # === HEADER SECTION ===
+        self.create_dashboard_header(is_market_open, market_status, system_running)
         
-        if not is_market_open:
-            # Show dimmed indicators
-            st.markdown("### 📊 Market Data (Inactive)")
-        else:
-            # Markets open - normal display
-            st.markdown("### Complete monitoring for Spin36TB system")
+        # === MAIN CONTENT TABS ===
+        tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "📈 Trading", "🎯 Activity", "⚠️ Risk"])
         
-        # Auto-refresh indicator
-        refresh_color = "#CCCCCC" if not is_market_open else "#FFFFFF"
-        st.markdown(f"<div style='color: {refresh_color}'>🔄 Last updated: {datetime.now().strftime('%H:%M:%S')} (refreshes every 10 seconds)</div>", unsafe_allow_html=True)
+        with tab1:
+            self.create_overview_tab(is_market_open)
         
-        # Discrete account balance at top
-        account_info = self.get_virtual_account_info()
-        if account_info:
-            current_balance = account_info['balance']
-            starting_balance = account_info['starting_balance'] 
-            pnl = current_balance - starting_balance
-            pnl_pct = (pnl / starting_balance) * 100
-            
-            if pnl >= 0:
-                st.markdown(f"<div style='text-align: right; color: #00ff00; font-size: 14px; margin-bottom: 10px;'>Balance: ${current_balance:,.2f} (+${pnl:,.2f} | +{pnl_pct:.2f}%)</div>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<div style='text-align: right; color: #ff4444; font-size: 14px; margin-bottom: 10px;'>Balance: ${current_balance:,.2f} (${pnl:,.2f} | {pnl_pct:.2f}%)</div>", unsafe_allow_html=True)
+        with tab2:
+            self.create_trading_tab(is_market_open)
         
-        # Key Performance Indicators (pass market status)
-        self.create_performance_metrics(is_market_open)
+        with tab3:
+            self.create_activity_tab(is_market_open)
         
-        st.divider()
+        with tab4:
+            self.create_risk_tab()
         
-        # Market Conditions (pass market status)
-        self.create_market_conditions_monitor(is_market_open)
-        
-        st.divider()
-        
-        # System Activity (pass market status)
-        self.create_system_activity_monitor(is_market_open)
-        
-        st.divider()
-        
-        # Risk Monitor
-        self.create_risk_monitor()
-        
-        # Control buttons
-        st.markdown("## 🎮 Controls")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            if st.button("🔄 Force Refresh", type="primary"):
-                st.rerun()
-        
-        with col2:
-            if st.button("📋 Download Log"):
-                log_lines = self.read_trading_log()
-                if log_lines is None or len(log_lines) == 0:
-                    log_content = "# Trading Log (Cloud Deployment)\n\n"
-                    log_content += "Log file not accessible from cloud deployment.\n"
-                    log_content += "System is active and running locally.\n\n"
-                    log_content += f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                    log_content += "Status: System Active (Cloud Monitoring)\n"
-                else:
-                    log_content = "\n".join(log_lines)
-                
-                st.download_button("💾 Download Trading Log", 
-                                 data=log_content,
-                                 file_name=f"trading_log_{datetime.now().strftime('%Y%m%d_%H%M')}.txt")
-        
-        with col3:
-            st.metric("Next Auto-Refresh", "10 seconds")
+        # === FOOTER CONTROLS ===
+        self.create_dashboard_footer()
         
         # Auto-refresh
         import time
         time.sleep(10)
         st.rerun()
+    
+    def create_dashboard_header(self, is_market_open, market_status, system_running):
+        """Create professional header section"""
+        # Title and status in one row
+        col1, col2, col3 = st.columns([2, 2, 1])
+        
+        with col1:
+            st.markdown("# 🏛️ Spin36TB Trading Monitor")
+            
+        with col2:
+            # System status indicator
+            if is_market_open and system_running['running'] and system_running['status'] == 'active':
+                st.success("🚀 SYSTEM ACTIVE & TRADING")
+            elif system_running['status'] == 'error':
+                st.info("🚀 ACTIVE (Cloud Monitoring)")
+            elif not is_market_open:
+                st.info("💤 SLEEPING (Markets Closed)")
+            else:
+                st.warning("⚠️ STATUS UNKNOWN")
+        
+        with col3:
+            # Account balance
+            account_info = self.get_virtual_account_info()
+            if account_info:
+                current_balance = account_info['balance']
+                starting_balance = account_info['starting_balance']
+                pnl = current_balance - starting_balance
+                pnl_pct = (pnl / starting_balance) * 100
+                
+                st.metric(
+                    "Account Balance", 
+                    f"${current_balance:,.2f}",
+                    f"{pnl:+.2f} ({pnl_pct:+.2f}%)"
+                )
+        
+        # Market status bar
+        st.info(f"🌍 {market_status}")
+        
+        # Last updated
+        refresh_color = "#666666" if not is_market_open else "#333333"
+        st.markdown(f"<div style='text-align: center; color: {refresh_color}; font-size: 12px; margin: 10px 0;'>🔄 Last updated: {datetime.now().strftime('%H:%M:%S')} • Auto-refresh: 10s</div>", unsafe_allow_html=True)
+        
+        st.divider()
+    
+    def create_overview_tab(self, is_market_open):
+        """Overview tab with key metrics"""
+        st.markdown("## 📊 Key Performance Indicators")
+        
+        # Get data
+        market_data = self.get_live_data(50)
+        log_lines = self.read_trading_log()
+        account_info = self.get_virtual_account_info()
+        
+        # Main metrics row
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        # System Health
+        health_score, health_status = self.calculate_system_health(log_lines)
+        with col1:
+            color = "normal" if health_score >= 70 else "off"
+            st.metric("🏥 System Health", f"{health_score:.0f}%", health_status, delta_color=color)
+        
+        # Current Price
+        with col2:
+            if not market_data.empty:
+                current_price = market_data['close'].iloc[-1]
+                price_change = current_price - market_data['close'].iloc[-6] if len(market_data) > 6 else 0
+                st.metric("📈 EUR/USD", f"{current_price:.4f}", f"{price_change*10000:+.1f} pips")
+            else:
+                st.metric("📈 EUR/USD", "No Data", "Connection Issue")
+        
+        # P&L
+        with col3:
+            if account_info:
+                current_balance = account_info['balance']
+                starting_balance = account_info['starting_balance']
+                pnl = current_balance - starting_balance
+                pnl_pct = (pnl / starting_balance) * 100
+                st.metric("💰 Paper P&L", f"${pnl:+,.2f}", f"{pnl_pct:+.2f}%")
+            else:
+                st.metric("💰 Paper P&L", "Offline", "Connection Issue")
+        
+        # Decisions
+        if log_lines is None:
+            decisions = 0
+        else:
+            decisions = len([l for l in log_lines if 'Portfolio Decision' in l])
+        with col4:
+            st.metric("🎯 Decisions", f"{decisions}", "Total Made")
+        
+        # Trades
+        if log_lines is None:
+            trades = 0
+        else:
+            trades = len([l for l in log_lines if 'PAPER TRADE' in l])
+        with col5:
+            st.metric("💼 Trades", f"{trades}", "Executed")
+    
+    def create_trading_tab(self, is_market_open):
+        """Trading analysis tab"""
+        st.markdown("## 📈 Market Analysis")
+        
+        market_data = self.get_live_data()
+        if market_data.empty:
+            st.error("❌ No market data available")
+            return
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Price chart
+            fig = go.Figure()
+            fig.add_trace(go.Candlestick(
+                x=market_data['time'],
+                open=market_data['open'],
+                high=market_data['high'],
+                low=market_data['low'],
+                close=market_data['close'],
+                name="EUR/USD",
+                increasing_line_color='#26a69a',
+                decreasing_line_color='#ef5350'
+            ))
+            
+            fig.update_layout(
+                title="Live EUR/USD Price Action",
+                template="plotly_white",
+                height=400,
+                showlegend=False,
+                xaxis_title="Time",
+                yaxis_title="Price"
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            st.markdown("### 🎯 Market Conditions")
+            
+            current_price = market_data['close'].iloc[-1]
+            
+            if len(market_data) > 10:
+                # Calculate metrics
+                volatility = (market_data['high'] - market_data['low']).tail(10).mean() * 10000
+                momentum = abs(current_price - market_data['close'].iloc[-6]) / current_price * 10000 if len(market_data) > 6 else 0
+                
+                # Display metrics
+                st.metric("Volatility", f"{volatility:.1f} pips")
+                st.metric("Momentum", f"{momentum:.1f} pips")
+                
+                # Market regime
+                regime = self.detect_market_regime(market_data)
+                regime_colors = {
+                    'HIGH_VOLATILITY': '🔴',
+                    'LOW_VOLATILITY': '🟡',
+                    'TRENDING': '🟢',
+                    'RANGING': '🟠',
+                    'NORMAL_VOLATILITY': '🔵'
+                }
+                st.info(f"{regime_colors.get(regime, '⚪')} {regime.replace('_', ' ').title()}")
+                
+                # Trading readiness
+                readiness_score = 0
+                if volatility > 2: readiness_score += 40
+                if momentum > 6: readiness_score += 40
+                if 7 <= datetime.now().hour <= 17: readiness_score += 20
+                
+                if readiness_score >= 80:
+                    st.success("🟢 READY TO TRADE")
+                elif readiness_score >= 50:
+                    st.warning("🟡 MARGINAL CONDITIONS")
+                else:
+                    st.error("🔴 WAIT FOR SETUP")
+    
+    def create_activity_tab(self, is_market_open):
+        """System activity monitoring tab"""
+        st.markdown("## 🎯 System Activity")
+        
+        self.create_system_activity_monitor(is_market_open)
+    
+    def create_risk_tab(self):
+        """Risk monitoring tab"""
+        st.markdown("## ⚠️ Risk Management")
+        
+        self.create_risk_monitor()
+    
+    def create_dashboard_footer(self):
+        """Footer with controls"""
+        st.divider()
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            if st.button("🔄 Refresh Now", type="primary", use_container_width=True):
+                st.rerun()
+        
+        with col2:
+            log_lines = self.read_trading_log()
+            if log_lines is None or len(log_lines) == 0:
+                log_content = "# Spin36TB Trading Log (Cloud Deployment)\n\n"
+                log_content += f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                log_content += "Status: System Active (Cloud Monitoring)\n\n"
+                log_content += "Note: Detailed logs available on local system.\n"
+            else:
+                log_content = "\n".join(log_lines)
+            
+            st.download_button(
+                "📋 Download Log",
+                data=log_content,
+                file_name=f"spin36tb_log_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+                use_container_width=True
+            )
+        
+        with col3:
+            st.metric("Auto-refresh", "Every 10s")
+        
+        with col4:
+            st.metric("Dashboard", "Professional")
 
 def main():
     dashboard = ProfessionalTradingDashboard()
