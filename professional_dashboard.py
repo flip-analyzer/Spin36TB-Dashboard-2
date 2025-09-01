@@ -795,6 +795,9 @@ class ProfessionalTradingDashboard:
                 # Log file accessible - check if it's from cloud or local
                 errors = len([l for l in log_lines if 'ERROR' in l])
                 decisions = len([l for l in log_lines if 'Portfolio Decision' in l])
+                # Also count "No trading signals" as system activity
+                no_signals = len([l for l in log_lines if 'No trading signals generated' in l])
+                total_activity = decisions + no_signals
                 
                 # Check if this might be a stale/old log file (cloud accessing repo file)
                 if len(log_lines) > 0:
@@ -811,6 +814,9 @@ class ProfessionalTradingDashboard:
                             decisions = 10  # Override to show as active
                         else:
                             is_cloud_deployment = False
+                            # Use total activity (decisions + no signals) if recent
+                            if total_activity > 0:
+                                decisions = total_activity
                     except:
                         is_cloud_deployment = True  # Parse error, assume cloud
                         decisions = 10
@@ -845,6 +851,8 @@ class ProfessionalTradingDashboard:
                 alerts.append("🟢 Cloud monitoring - System active")
             elif decisions == 0:
                 alerts.append("🔴 System not making decisions")
+            elif decisions > 0:
+                alerts.append("🟢 System active - Making decisions")
             elif decisions < 5:
                 alerts.append("🟡 System recently started")
             
