@@ -806,7 +806,7 @@ class ProfessionalTradingDashboard:
             st.markdown("### Complete monitoring for Spin36TB system")
         
         # Auto-refresh indicator
-        refresh_color = "#666666" if not is_market_open else "#000000"
+        refresh_color = "#CCCCCC" if not is_market_open else "#FFFFFF"
         st.markdown(f"<div style='color: {refresh_color}'>🔄 Last updated: {datetime.now().strftime('%H:%M:%S')} (refreshes every 10 seconds)</div>", unsafe_allow_html=True)
         
         # Discrete account balance at top
