@@ -309,60 +309,64 @@ class ProfessionalTradingDashboard:
         return health_score, status
     
     def check_system_running_status(self):
-        """Check if the live trading system is currently running"""
+        """Check if the live trading system is currently running based on log activity"""
         try:
-            import subprocess
-            
-            # Check if live_paper_trader.py process is running
-            result = subprocess.run(['pgrep', '-f', 'live_paper_trader.py'], 
-                                  capture_output=True, text=True, timeout=5)
-            
-            if result.returncode == 0:
-                # Process found - check recent activity
-                log_lines = self.read_trading_log()
-                if log_lines:
-                    try:
-                        # Check if last log entry is recent (within 10 minutes)
-                        last_log = log_lines[-1]
-                        last_time_str = last_log.split(',')[0]
-                        last_time = datetime.strptime(last_time_str, '%Y-%m-%d %H:%M:%S')
-                        minutes_since = (datetime.now() - last_time).total_seconds() / 60
-                        
-                        if minutes_since < 10:
-                            return {
-                                'running': True,
-                                'status': 'active',
-                                'details': f'System active - Last activity: {minutes_since:.1f}m ago'
-                            }
-                        else:
-                            return {
-                                'running': True,
-                                'status': 'stalled',
-                                'details': f'Process running but inactive for {minutes_since:.0f}m'
-                            }
-                    except:
-                        return {
-                            'running': True,
-                            'status': 'unknown',
-                            'details': 'Process running - Activity status unclear'
-                        }
-                else:
-                    return {
-                        'running': True, 
-                        'status': 'starting',
-                        'details': 'Process running - No logs yet'
-                    }
-            else:
+            log_lines = self.read_trading_log()
+            if not log_lines:
                 return {
                     'running': False,
                     'status': 'stopped',
-                    'details': 'No live_paper_trader.py process found'
+                    'details': 'No log file found - System not started'
                 }
+            
+            # Check recent activity by analyzing log timestamps
+            try:
+                last_log = log_lines[-1]
+                last_time_str = last_log.split(',')[0]
+                last_time = datetime.strptime(last_time_str, '%Y-%m-%d %H:%M:%S')
+                minutes_since = (datetime.now() - last_time).total_seconds() / 60
+                
+                # Look for decision-making activity (should happen every 5 minutes)
+                recent_decisions = [l for l in log_lines if 'Portfolio Decision' in l][-3:]
+                
+                if minutes_since < 8:  # System is active within 8 minutes
+                    if recent_decisions and 'Portfolio Decision' in log_lines[-5:][0]:
+                        return {
+                            'running': True,
+                            'status': 'active',
+                            'details': f'System active - Last activity: {minutes_since:.1f}m ago'
+                        }
+                    else:
+                        return {
+                            'running': True,
+                            'status': 'active',
+                            'details': f'System active - Last log: {minutes_since:.1f}m ago'
+                        }
+                elif minutes_since < 15:  # Recently active but may be sleeping
+                    return {
+                        'running': True,
+                        'status': 'idle',
+                        'details': f'System idle - Last activity: {minutes_since:.1f}m ago'
+                    }
+                else:  # Inactive for too long
+                    return {
+                        'running': False,
+                        'status': 'stalled',
+                        'details': f'System stalled - No activity for {minutes_since:.0f}m'
+                    }
+                        
+            except Exception as parse_error:
+                return {
+                    'running': False,
+                    'status': 'unknown',
+                    'details': f'Cannot parse log timestamps: {str(parse_error)}'
+                }
+                
         except Exception as e:
             return {
                 'running': False,
                 'status': 'error',
-                'details': f'Cannot determine system status: {str(e)}'
+                'details': f'Cannot read system status: {str(e)}'
             }
     
     def display_system_status(self, is_market_open, market_status, system_running):
@@ -378,7 +382,10 @@ class ProfessionalTradingDashboard:
             st.success(f"✅ Markets Open & System Running - {system_running['details']}")
         elif is_market_open and system_running['running']:
             # Markets open but system issues
-            if system_running['status'] == 'stalled':
+            if system_running['status'] == 'idle':
+                st.markdown("### 🟡 SYSTEM STATUS: ACTIVE (RECENTLY IDLE)")
+                st.warning(f"🟡 Markets Open & System Recently Active - {system_running['details']}")
+            elif system_running['status'] == 'stalled':
                 st.markdown("### ⚠️ SYSTEM STATUS: RUNNING BUT STALLED")
                 st.warning(f"🟡 Markets Open but System Inactive - {system_running['details']}")
             elif system_running['status'] == 'starting':
@@ -392,9 +399,13 @@ class ProfessionalTradingDashboard:
             st.markdown("### 💤 SYSTEM STATUS: SLEEPING (ENERGY SAVE MODE)")
             st.info(f"💤 {market_status} - System properly conserving energy")
         elif not is_market_open and system_running['running']:
-            # Markets closed but system still running (wasteful)
-            st.markdown("### ⚡ SYSTEM STATUS: RUNNING DURING CLOSURE")
-            st.warning(f"⚡ {market_status} - System should sleep to conserve energy")
+            # Markets closed but system still running (may be transitioning)
+            if system_running['status'] == 'active':
+                st.markdown("### ⚡ SYSTEM STATUS: ACTIVE DURING CLOSURE")
+                st.warning(f"⚡ {market_status} - System should sleep to conserve energy")
+            else:
+                st.markdown("### 💤 SYSTEM STATUS: TRANSITIONING TO SLEEP")
+                st.info(f"💤 {market_status} - System winding down")
         else:
             # Markets open but system not running (missing trades)
             st.markdown("### ❌ SYSTEM STATUS: OFFLINE DURING TRADING HOURS")
