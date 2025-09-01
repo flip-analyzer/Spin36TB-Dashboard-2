@@ -330,18 +330,11 @@ class ProfessionalTradingDashboard:
                 recent_decisions = [l for l in log_lines if 'Portfolio Decision' in l][-3:]
                 
                 if minutes_since < 8:  # System is active within 8 minutes
-                    if recent_decisions and 'Portfolio Decision' in log_lines[-5:][0]:
-                        return {
-                            'running': True,
-                            'status': 'active',
-                            'details': f'System active - Last activity: {minutes_since:.1f}m ago'
-                        }
-                    else:
-                        return {
-                            'running': True,
-                            'status': 'active',
-                            'details': f'System active - Last log: {minutes_since:.1f}m ago'
-                        }
+                    return {
+                        'running': True,
+                        'status': 'active',
+                        'details': f'System active - Last activity: {minutes_since:.1f}m ago'
+                    }
                 elif minutes_since < 15:  # Recently active but may be sleeping
                     return {
                         'running': True,
@@ -421,7 +414,12 @@ class ProfessionalTradingDashboard:
         with col2:
             st.markdown("**🔧 System Details:**")
             if system_running['running']:
-                st.text(f"✅ Process: RUNNING")
+                if system_running['status'] == 'active':
+                    st.text(f"✅ Process: ACTIVE")
+                elif system_running['status'] == 'idle':
+                    st.text(f"🟡 Process: IDLE")
+                else:
+                    st.text(f"🔄 Process: RUNNING")
             else:
                 st.text(f"❌ Process: STOPPED")
             st.text(f"📊 Status: {system_running['status'].upper()}")
