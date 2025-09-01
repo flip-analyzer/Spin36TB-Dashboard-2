@@ -308,6 +308,115 @@ class ProfessionalTradingDashboard:
         
         return health_score, status
     
+    def check_system_running_status(self):
+        """Check if the live trading system is currently running"""
+        try:
+            import subprocess
+            
+            # Check if live_paper_trader.py process is running
+            result = subprocess.run(['pgrep', '-f', 'live_paper_trader.py'], 
+                                  capture_output=True, text=True, timeout=5)
+            
+            if result.returncode == 0:
+                # Process found - check recent activity
+                log_lines = self.read_trading_log()
+                if log_lines:
+                    try:
+                        # Check if last log entry is recent (within 10 minutes)
+                        last_log = log_lines[-1]
+                        last_time_str = last_log.split(',')[0]
+                        last_time = datetime.strptime(last_time_str, '%Y-%m-%d %H:%M:%S')
+                        minutes_since = (datetime.now() - last_time).total_seconds() / 60
+                        
+                        if minutes_since < 10:
+                            return {
+                                'running': True,
+                                'status': 'active',
+                                'details': f'System active - Last activity: {minutes_since:.1f}m ago'
+                            }
+                        else:
+                            return {
+                                'running': True,
+                                'status': 'stalled',
+                                'details': f'Process running but inactive for {minutes_since:.0f}m'
+                            }
+                    except:
+                        return {
+                            'running': True,
+                            'status': 'unknown',
+                            'details': 'Process running - Activity status unclear'
+                        }
+                else:
+                    return {
+                        'running': True, 
+                        'status': 'starting',
+                        'details': 'Process running - No logs yet'
+                    }
+            else:
+                return {
+                    'running': False,
+                    'status': 'stopped',
+                    'details': 'No live_paper_trader.py process found'
+                }
+        except Exception as e:
+            return {
+                'running': False,
+                'status': 'error',
+                'details': f'Cannot determine system status: {str(e)}'
+            }
+    
+    def display_system_status(self, is_market_open, market_status, system_running):
+        """Display comprehensive system status at top of dashboard"""
+        
+        # Create status container
+        st.markdown("---")
+        
+        # System status header
+        if is_market_open and system_running['running'] and system_running['status'] == 'active':
+            # Everything optimal
+            st.markdown("### 🚀 SYSTEM STATUS: ACTIVE & TRADING")
+            st.success(f"✅ Markets Open & System Running - {system_running['details']}")
+        elif is_market_open and system_running['running']:
+            # Markets open but system issues
+            if system_running['status'] == 'stalled':
+                st.markdown("### ⚠️ SYSTEM STATUS: RUNNING BUT STALLED")
+                st.warning(f"🟡 Markets Open but System Inactive - {system_running['details']}")
+            elif system_running['status'] == 'starting':
+                st.markdown("### 🔄 SYSTEM STATUS: STARTING UP")
+                st.info(f"🔄 Markets Open & System Starting - {system_running['details']}")
+            else:
+                st.markdown("### ❓ SYSTEM STATUS: UNKNOWN")
+                st.warning(f"⚠️ Markets Open - {system_running['details']}")
+        elif not is_market_open and not system_running['running']:
+            # Markets closed and system properly sleeping
+            st.markdown("### 💤 SYSTEM STATUS: SLEEPING (ENERGY SAVE MODE)")
+            st.info(f"💤 {market_status} - System properly conserving energy")
+        elif not is_market_open and system_running['running']:
+            # Markets closed but system still running (wasteful)
+            st.markdown("### ⚡ SYSTEM STATUS: RUNNING DURING CLOSURE")
+            st.warning(f"⚡ {market_status} - System should sleep to conserve energy")
+        else:
+            # Markets open but system not running (missing trades)
+            st.markdown("### ❌ SYSTEM STATUS: OFFLINE DURING TRADING HOURS")
+            st.error(f"❌ {market_status} - System should be active!")
+        
+        # Additional system details
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**🌍 Market Status:**")
+            st.text(market_status)
+        
+        with col2:
+            st.markdown("**🔧 System Details:**")
+            if system_running['running']:
+                st.text(f"✅ Process: RUNNING")
+            else:
+                st.text(f"❌ Process: STOPPED")
+            st.text(f"📊 Status: {system_running['status'].upper()}")
+        
+        st.markdown("---")
+    
     def create_performance_metrics(self, is_market_open=True):
         """Create key performance metrics"""
         header_style = "" if is_market_open else "color: #888888"
@@ -683,13 +792,13 @@ class ProfessionalTradingDashboard:
         # Check market status first
         is_market_open, market_status = self.market_scheduler.is_market_open()
         
+        # Check if trading system is actually running
+        system_running = self.check_system_running_status()
+        
+        # Display system status
+        self.display_system_status(is_market_open, market_status, system_running)
+        
         if not is_market_open:
-            # Markets closed - show sleep mode
-            st.markdown("### 💤 System in Sleep Mode")
-            st.error(f"⏰ {market_status}")
-            st.info("🔋 Energy conservation mode: Trading system paused until markets reopen")
-            st.markdown("---")
-            
             # Show dimmed indicators
             st.markdown("### 📊 Market Data (Inactive)")
         else:
