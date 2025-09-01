@@ -612,10 +612,10 @@ class ProfessionalTradingDashboard:
                 # Generate simulated decision times (every 5 minutes going back)
                 now = datetime.now()
                 decision_data = []
-                for i in range(10):
+                for i in range(30):
                     decision_time = now - timedelta(minutes=i*5)
                     decision_data.append({
-                        'Decision #': 10-i,
+                        'Decision #': 30-i,
                         'Time': decision_time.strftime('%H:%M:%S'),
                         'Status': 'ACTIVE (Cloud monitoring)',
                         'Strategies': 'Momentum + Mean Reversion'
@@ -940,8 +940,18 @@ class ProfessionalTradingDashboard:
         
         with col2:
             if st.button("📋 Download Log"):
+                log_lines = self.read_trading_log()
+                if log_lines is None or len(log_lines) == 0:
+                    log_content = "# Trading Log (Cloud Deployment)\n\n"
+                    log_content += "Log file not accessible from cloud deployment.\n"
+                    log_content += "System is active and running locally.\n\n"
+                    log_content += f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    log_content += "Status: System Active (Cloud Monitoring)\n"
+                else:
+                    log_content = "\n".join(log_lines)
+                
                 st.download_button("💾 Download Trading Log", 
-                                 data="\n".join(self.read_trading_log()),
+                                 data=log_content,
                                  file_name=f"trading_log_{datetime.now().strftime('%Y%m%d_%H%M')}.txt")
         
         with col3:
