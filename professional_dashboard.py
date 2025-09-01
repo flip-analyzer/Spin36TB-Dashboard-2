@@ -454,12 +454,17 @@ class ProfessionalTradingDashboard:
                 st.metric("📈 EURUSD", "No Data", "Connection Issue")
         
         # Decision Count
-        decisions = len([l for l in log_lines if 'Portfolio Decision' in l])
+        if log_lines is None:
+            decisions = 0
+            trades = 0
+        else:
+            decisions = len([l for l in log_lines if 'Portfolio Decision' in l])
+            trades = len([l for l in log_lines if 'PAPER TRADE' in l])
+            
         with col4:
             st.metric("🎯 Decisions", f"{decisions}", "Total Made")
         
         # Trade Status
-        trades = len([l for l in log_lines if 'PAPER TRADE' in l])
         with col5:
             st.metric("💼 Trades", f"{trades}", "Executed")
     
@@ -725,8 +730,12 @@ class ProfessionalTradingDashboard:
         with col3:
             st.markdown("### 🛡️ System Alerts")
             
-            errors = len([l for l in log_lines if 'ERROR' in l])
-            decisions = len([l for l in log_lines if 'Portfolio Decision' in l])
+            if log_lines is None or len(log_lines) == 0:
+                errors = 0
+                decisions = 0
+            else:
+                errors = len([l for l in log_lines if 'ERROR' in l])
+                decisions = len([l for l in log_lines if 'Portfolio Decision' in l])
             
             # Alert levels - check for emergency conditions
             alerts = []
@@ -758,7 +767,7 @@ class ProfessionalTradingDashboard:
                 alerts.append("🟡 System recently started")
             
             # Check if system is stuck
-            if len(log_lines) > 0:
+            if log_lines and len(log_lines) > 0:
                 last_log = log_lines[-1]
                 try:
                     last_time = datetime.strptime(last_log.split(',')[0], '%Y-%m-%d %H:%M:%S')
