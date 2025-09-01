@@ -198,8 +198,12 @@ class ProfessionalTradingDashboard:
         """Read trading log"""
         try:
             with open('/Users/jonspinogatti/Desktop/spin36TB/live_trading.log', 'r') as f:
-                return [line.strip() for line in f.readlines() if line.strip()]
-        except:
+                lines = [line.strip() for line in f.readlines() if line.strip()]
+                return lines
+        except FileNotFoundError:
+            # Log file doesn't exist or can't be accessed (e.g., from Streamlit Cloud)
+            return None  # Return None to distinguish from empty log
+        except Exception:
             return []
     
     def get_virtual_account_info(self):
@@ -312,11 +316,18 @@ class ProfessionalTradingDashboard:
         """Check if the live trading system is currently running based on log activity"""
         try:
             log_lines = self.read_trading_log()
-            if not log_lines:
+            if log_lines is None:
+                # File not accessible (likely running from Streamlit Cloud)
+                return {
+                    'running': True,  # Assume running since we can't verify
+                    'status': 'error',
+                    'details': 'Log file not accessible from cloud - Monitoring limited'
+                }
+            elif not log_lines:
                 return {
                     'running': False,
                     'status': 'stopped',
-                    'details': 'No log file found - System not started'
+                    'details': 'No log entries found - System not started'
                 }
             
             # Check recent activity by analyzing log timestamps
@@ -363,67 +374,42 @@ class ProfessionalTradingDashboard:
             }
     
     def display_system_status(self, is_market_open, market_status, system_running):
-        """Display comprehensive system status at top of dashboard"""
+        """Display compact system status"""
         
-        # Create status container
-        st.markdown("---")
-        
-        # System status header
-        if is_market_open and system_running['running'] and system_running['status'] == 'active':
-            # Everything optimal
-            st.markdown("### 🚀 SYSTEM STATUS: ACTIVE & TRADING")
-            st.success(f"✅ Markets Open & System Running - {system_running['details']}")
-        elif is_market_open and system_running['running']:
-            # Markets open but system issues
-            if system_running['status'] == 'idle':
-                st.markdown("### 🟡 SYSTEM STATUS: ACTIVE (RECENTLY IDLE)")
-                st.warning(f"🟡 Markets Open & System Recently Active - {system_running['details']}")
-            elif system_running['status'] == 'stalled':
-                st.markdown("### ⚠️ SYSTEM STATUS: RUNNING BUT STALLED")
-                st.warning(f"🟡 Markets Open but System Inactive - {system_running['details']}")
-            elif system_running['status'] == 'starting':
-                st.markdown("### 🔄 SYSTEM STATUS: STARTING UP")
-                st.info(f"🔄 Markets Open & System Starting - {system_running['details']}")
-            else:
-                st.markdown("### ❓ SYSTEM STATUS: UNKNOWN")
-                st.warning(f"⚠️ Markets Open - {system_running['details']}")
-        elif not is_market_open and not system_running['running']:
-            # Markets closed and system properly sleeping
-            st.markdown("### 💤 SYSTEM STATUS: SLEEPING (ENERGY SAVE MODE)")
-            st.info(f"💤 {market_status} - System properly conserving energy")
-        elif not is_market_open and system_running['running']:
-            # Markets closed but system still running (may be transitioning)
-            if system_running['status'] == 'active':
-                st.markdown("### ⚡ SYSTEM STATUS: ACTIVE DURING CLOSURE")
-                st.warning(f"⚡ {market_status} - System should sleep to conserve energy")
-            else:
-                st.markdown("### 💤 SYSTEM STATUS: TRANSITIONING TO SLEEP")
-                st.info(f"💤 {market_status} - System winding down")
-        else:
-            # Markets open but system not running (missing trades)
-            st.markdown("### ❌ SYSTEM STATUS: OFFLINE DURING TRADING HOURS")
-            st.error(f"❌ {market_status} - System should be active!")
-        
-        # Additional system details
-        col1, col2 = st.columns(2)
+        # Compact status in a single row
+        col1, col2, col3 = st.columns([2, 2, 1])
         
         with col1:
-            st.markdown("**🌍 Market Status:**")
-            st.text(market_status)
+            # System status indicator
+            if is_market_open and system_running['running'] and system_running['status'] == 'active':
+                st.success("🚀 ACTIVE & TRADING")
+            elif is_market_open and system_running['running']:
+                if system_running['status'] == 'idle':
+                    st.warning("🟡 RECENTLY ACTIVE")
+                elif system_running['status'] == 'error':
+                    st.info("📊 MONITORING (Log access limited from cloud)")
+                else:
+                    st.warning("🔄 STARTING UP")
+            elif not is_market_open and not system_running['running']:
+                st.info("💤 SLEEPING")
+            elif not is_market_open and system_running['running']:
+                st.warning("⚡ ACTIVE DURING CLOSURE")
+            else:
+                if system_running['status'] == 'error':
+                    st.info("📊 MONITORING (Log access limited from cloud)")
+                else:
+                    st.error("❌ OFFLINE")
         
         with col2:
-            st.markdown("**🔧 System Details:**")
-            if system_running['running']:
-                if system_running['status'] == 'active':
-                    st.text(f"✅ Process: ACTIVE")
-                elif system_running['status'] == 'idle':
-                    st.text(f"🟡 Process: IDLE")
-                else:
-                    st.text(f"🔄 Process: RUNNING")
-            else:
-                st.text(f"❌ Process: STOPPED")
-            st.text(f"📊 Status: {system_running['status'].upper()}")
+            st.text(f"🌍 {market_status}")
         
+        with col3:
+            if system_running['status'] == 'error':
+                st.text("📊 Monitoring")
+            else:
+                st.text(f"📊 {system_running['status'].title()}")
+        
+        # Divider
         st.markdown("---")
     
     def create_performance_metrics(self, is_market_open=True):
