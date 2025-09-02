@@ -1,8 +1,0 @@
-PROFESSIONAL VALIDATION REPORT
-========================================
-
-Generated: 2025-08-29 19:23:40.908893
-Total Periods Tested: 12
-Average Net Return: +0.00%
-Average Win Rate: 0.0%
-Transaction Cost Impact: nan%
