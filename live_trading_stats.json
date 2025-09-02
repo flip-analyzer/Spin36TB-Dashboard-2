@@ -1,0 +1,66 @@
+{
+  "last_updated": "2025-09-02T10:19:58.515943",
+  "total_decisions": 74,
+  "total_trades": 150,
+  "trades_opened": 150,
+  "trades_closed": 70,
+  "paper_pnl": -5.46,
+  "winning_trades": 24,
+  "losing_trades": 31,
+  "system_active": true,
+  "gmm_active": false,
+  "latest_signals": [
+    {
+      "type": "momentum_standard",
+      "direction": "DOWN",
+      "confidence": 14.82
+    },
+    {
+      "type": "momentum_standard",
+      "direction": "DOWN",
+      "confidence": 14.82
+    },
+    {
+      "type": "momentum_standard",
+      "direction": "DOWN",
+      "confidence": 12.34
+    },
+    {
+      "type": "momentum_standard",
+      "direction": "DOWN",
+      "confidence": 10.54
+    },
+    {
+      "type": "momentum_standard",
+      "direction": "DOWN",
+      "confidence": 10.54
+    },
+    {
+      "type": "momentum_standard",
+      "direction": "DOWN",
+      "confidence": 11.46
+    },
+    {
+      "type": "momentum_standard",
+      "direction": "DOWN",
+      "confidence": 11.46
+    },
+    {
+      "type": "momentum_standard",
+      "direction": "DOWN",
+      "confidence": 10.97
+    },
+    {
+      "type": "momentum_standard",
+      "direction": "DOWN",
+      "confidence": 7.64
+    },
+    {
+      "type": "momentum_standard",
+      "direction": "DOWN",
+      "confidence": 7.64
+    }
+  ],
+  "recent_trades": [],
+  "win_rate": 0.343
+}
