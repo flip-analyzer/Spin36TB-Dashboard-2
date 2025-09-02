@@ -1,9 +1,9 @@
 {
-  "last_updated": "2025-09-02T10:48:02.372503",
+  "last_updated": "2025-09-02T13:15:37.936393",
   "total_decisions": 74,
   "total_trades": 150,
   "trades_opened": 150,
-  "trades_closed": 73,
+  "trades_closed": 77,
   "paper_pnl": -5.46,
   "winning_trades": 24,
   "losing_trades": 31,
@@ -62,5 +62,5 @@
     }
   ],
   "recent_trades": [],
-  "win_rate": 0.329
+  "win_rate": 0.312
 }
