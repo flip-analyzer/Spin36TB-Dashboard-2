@@ -1,0 +1,18 @@
+{
+  "session_summary": {
+    "start_time": "2025-09-01T08:40:49.683856",
+    "end_time": "2025-09-01T12:41:11.492010",
+    "starting_capital": 25000,
+    "final_capital": 25000,
+    "total_return": 0.0,
+    "total_decisions": 48,
+    "total_trades": 0
+  },
+  "strategy_performance": {
+    "momentum_trades": 0,
+    "momentum_wins": 0,
+    "mr_trades": 0,
+    "mr_wins": 0
+  },
+  "trade_history": []
+}

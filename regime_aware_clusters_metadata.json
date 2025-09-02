@@ -1,0 +1,96 @@
+{
+  "regime_models": {
+    "MIXED_CONDITIONS": "/Users/jonspinogatti/Desktop/spin36TB/regime_aware_clusters_MIXED_CONDITIONS_model.pkl"
+  },
+  "regime_scalers": {
+    "MIXED_CONDITIONS": "/Users/jonspinogatti/Desktop/spin36TB/regime_aware_clusters_MIXED_CONDITIONS_scaler.pkl"
+  },
+  "regime_statistics": {
+    "MIXED_CONDITIONS": {
+      "model_type": "KMeans",
+      "n_clusters": 8,
+      "silhouette_score": 0.05769308678768155,
+      "cluster_stats": {
+        "cluster_performance": {
+          "2": {
+            "total_excursions": 168,
+            "win_rate": 0.5416666666666666,
+            "avg_pips": 27.450147935854787,
+            "dominant_direction": "UP",
+            "avg_candles_to_peak": 17.297619047619047
+          },
+          "3": {
+            "total_excursions": 181,
+            "win_rate": 0.5911602209944752,
+            "avg_pips": 31.001577818625286,
+            "dominant_direction": "UP",
+            "avg_candles_to_peak": 17.41988950276243
+          },
+          "5": {
+            "total_excursions": 229,
+            "win_rate": 0.6200873362445415,
+            "avg_pips": 29.849070921252217,
+            "dominant_direction": "UP",
+            "avg_candles_to_peak": 21.49344978165939
+          },
+          "6": {
+            "total_excursions": 187,
+            "win_rate": 0.6256684491978609,
+            "avg_pips": 35.70688330125408,
+            "dominant_direction": "UP",
+            "avg_candles_to_peak": 16.048128342245988
+          },
+          "1": {
+            "total_excursions": 186,
+            "win_rate": 0.5752688172043011,
+            "avg_pips": 29.51741401520973,
+            "dominant_direction": "UP",
+            "avg_candles_to_peak": 13.451612903225806
+          },
+          "4": {
+            "total_excursions": 162,
+            "win_rate": 0.5246913580246914,
+            "avg_pips": 32.85451709057987,
+            "dominant_direction": "UP",
+            "avg_candles_to_peak": 7.462962962962963
+          },
+          "7": {
+            "total_excursions": 188,
+            "win_rate": 0.5957446808510638,
+            "avg_pips": 28.009338279861126,
+            "dominant_direction": "DOWN",
+            "avg_candles_to_peak": 9.51063829787234
+          },
+          "0": {
+            "total_excursions": 199,
+            "win_rate": 0.49246231155778897,
+            "avg_pips": 33.15683617048691,
+            "dominant_direction": "UP",
+            "avg_candles_to_peak": 20.819095477386934
+          }
+        },
+        "best_cluster_id": 6,
+        "best_cluster_win_rate": 0.6256684491978609,
+        "best_cluster_avg_pips": 35.70688330125408,
+        "total_clusters": 8
+      },
+      "total_samples": 1500
+    }
+  },
+  "feature_columns": [
+    "candles_to_peak",
+    "volatility",
+    "momentum",
+    "trend_strength",
+    "rsi",
+    "macd",
+    "bb_position",
+    "body_size",
+    "wick_ratio",
+    "volume_ratio",
+    "volume_trend",
+    "hour_sin",
+    "hour_cos"
+  ],
+  "n_clusters_per_regime": 8
+}

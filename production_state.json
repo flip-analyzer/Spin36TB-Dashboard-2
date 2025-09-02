@@ -1,0 +1,58 @@
+{
+  "system_config": {
+    "trading_mode": "DUAL_STRATEGY",
+    "strategies": ["MOMENTUM", "MEAN_REVERSION"],
+    "allocation_momentum": 0.6,
+    "allocation_mean_reversion": 0.4,
+    "max_daily_trades": 20,
+    "max_position_size": 0.012,
+    "daily_var_limit": 0.004,
+    "max_drawdown_stop": 0.02,
+    "min_confidence_threshold": 0.3,
+    "profit_target_pips": 15,
+    "stop_loss_pips": 8,
+    "correlation_threshold": -0.2,
+    "rebalance_frequency": 50
+  },
+  "performance_metrics": {
+    "total_trades": 208,
+    "momentum_trades": 146,
+    "mean_reversion_trades": 62,
+    "winning_trades": 123,
+    "total_pips": 208.0,
+    "total_return": 0.0001,
+    "max_drawdown": 0.0001,
+    "consecutive_losses": 0,
+    "daily_trades": 20,
+    "last_trade_date": "2025-08-30",
+    "strategy_correlation": -0.37,
+    "opposing_signals": 62,
+    "simultaneous_trades": 45
+  },
+  "risk_metrics": {
+    "current_drawdown": 0.0001,
+    "daily_pnl": 0.0001,
+    "var_95_daily": 0.003,
+    "portfolio_peak": 25002.36,
+    "annualized_volatility": 0.003,
+    "sharpe_ratio": 13.56
+  },
+  "strategy_performance": {
+    "momentum": {
+      "win_rate": 0.507,
+      "avg_pips_per_trade": 0.3,
+      "total_trades": 146,
+      "contribution": 0.6
+    },
+    "mean_reversion": {
+      "win_rate": 0.79,
+      "avg_pips_per_trade": 0.6,
+      "total_trades": 62,
+      "contribution": 0.4
+    }
+  },
+  "current_capital": 25002.36,
+  "starting_capital": 25000,
+  "leverage": 2.0,
+  "timestamp": "2025-08-30T12:00:00.000000"
+}
