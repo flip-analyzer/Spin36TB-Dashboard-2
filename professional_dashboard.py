@@ -195,21 +195,58 @@ class ProfessionalTradingDashboard:
             return pd.DataFrame()
     
     def read_trading_log(self):
-        """Read trading log with cloud deployment detection"""
+        """Read trading log with enhanced cloud deployment detection"""
         try:
+            # Check if we're in a cloud environment by looking for typical cloud paths
+            import os
+            current_dir = os.getcwd()
+            
+            # Streamlit Cloud typically runs from /mount/src/ or similar
+            if '/mount/' in current_dir or 'streamlit' in current_dir.lower():
+                return None  # Definitely cloud deployment
+            
             with open('/Users/jonspinogatti/Desktop/spin36TB/live_trading.log', 'r') as f:
                 lines = [line.strip() for line in f.readlines() if line.strip()]
                 
-                # Check if this is a stale/empty repository version
-                if len(lines) < 50:  # Fewer than 50 lines suggests repo version, not live
-                    return None  # Treat as cloud deployment
+                # Additional checks for stale/empty repository version
+                if len(lines) == 0:
+                    return None  # Empty file = cloud deployment
+                    
+                if len(lines) < 20:  # Very few lines suggests repo version
+                    return None
+                
+                # Check if lines contain recent timestamps (within last 24 hours)
+                if lines:
+                    try:
+                        # Check the last few lines for recent activity
+                        recent_lines = lines[-5:] if len(lines) >= 5 else lines
+                        has_recent_activity = False
+                        
+                        from datetime import datetime, timedelta
+                        cutoff_time = datetime.now() - timedelta(hours=24)
+                        
+                        for line in recent_lines:
+                            if ',' in line:
+                                timestamp_str = line.split(',')[0]
+                                try:
+                                    timestamp = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                                    if timestamp > cutoff_time:
+                                        has_recent_activity = True
+                                        break
+                                except:
+                                    continue
+                        
+                        if not has_recent_activity:
+                            return None  # Old/stale log = treat as cloud
+                            
+                    except:
+                        pass  # If timestamp parsing fails, continue with existing logic
                 
                 return lines
         except FileNotFoundError:
-            # Log file doesn't exist or can't be accessed (e.g., from Streamlit Cloud)
-            return None  # Return None to distinguish from empty log
+            return None  # File doesn't exist = cloud deployment
         except Exception:
-            return None  # Changed from [] to None for consistency
+            return None  # Any other error = treat as cloud
     
     def get_virtual_account_info(self):
         """Get virtual paper trading account info instead of real OANDA account"""
@@ -710,6 +747,10 @@ class ProfessionalTradingDashboard:
             # System statistics
             st.markdown("### 📊 Session Stats")
             
+            # Enhanced debugging and cloud detection
+            import os
+            current_dir = os.getcwd()
+            
             # Handle cloud deployment where log_lines is None
             if log_lines is None or len(log_lines) == 0:
                 # Cloud deployment - estimate from uptime
@@ -722,12 +763,18 @@ class ProfessionalTradingDashboard:
                     total_decisions = 0
                 total_trades = 0  # Quality-focused system typically shows 0
                 errors = 0  # No error log access in cloud
-                st.caption(f"Cloud mode: Estimated metrics (log access: {log_lines is not None})")
+                
+                # Detailed debug info
+                debug_msg = f"CLOUD MODE - Dir: {current_dir[:50]}{'...' if len(current_dir) > 50 else ''}, "
+                debug_msg += f"Log: {log_lines is not None}, Lines: {len(log_lines) if log_lines else 0}, "
+                debug_msg += f"Est decisions: {total_decisions}"
+                st.caption(debug_msg)
+                
             else:
                 total_decisions = len([l for l in log_lines if 'Portfolio Decision' in l])
                 total_trades = len([l for l in log_lines if 'PAPER TRADE' in l])
                 errors = len([l for l in log_lines if 'ERROR' in l])
-                st.caption(f"Local mode: {len(log_lines)} log lines analyzed")
+                st.caption(f"LOCAL MODE: {len(log_lines)} lines, {total_decisions} decisions found")
             
             st.metric("Total Decisions", total_decisions)
             st.metric("Trades Executed", total_trades)
@@ -1022,6 +1069,9 @@ class ProfessionalTradingDashboard:
                 st.metric("💰 Paper P&L", "Offline", "Connection Issue")
         
         # Decisions (use simulated count for cloud deployment)
+        import os
+        current_dir = os.getcwd()
+        
         if log_lines is None or len(log_lines) == 0:
             # Cloud deployment - estimate from uptime
             current_hour = datetime.now().hour
@@ -1031,11 +1081,14 @@ class ProfessionalTradingDashboard:
                 decisions = max(0, int(minutes_since_8am / 5))
             else:
                 decisions = 0
-            # Debug info for cloud
-            st.caption(f"Cloud mode: Estimated {decisions} decisions (log: {log_lines is None})")
+            
+            # Enhanced debug info for cloud
+            debug_msg = f"CLOUD: Dir={current_dir[:30]}{'...' if len(current_dir) > 30 else ''}, "
+            debug_msg += f"Hour={current_hour}, Est={decisions}"
+            st.caption(debug_msg)
         else:
             decisions = len([l for l in log_lines if 'Portfolio Decision' in l])
-            st.caption(f"Local mode: Found {decisions} actual decisions in {len(log_lines)} log lines")
+            st.caption(f"LOCAL: {len(log_lines)} lines, {decisions} decisions")
         with col4:
             st.metric("🎯 Decisions", f"{decisions}", "Total Made")
         
