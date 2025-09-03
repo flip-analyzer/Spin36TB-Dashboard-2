@@ -1,0 +1,30 @@
+{
+  "starting_capital": 25000,
+  "max_session_hours": 24,
+  "restart_hour": 17,
+  "market_check_interval": 300,
+  "error_retry_delay": 60,
+  "max_consecutive_errors": 5,
+  "trading_settings": {
+    "max_concurrent_trades": 10,
+    "position_size_cap": 0.015,
+    "emergency_stop_loss_pct": 0.05
+  },
+  "logging": {
+    "log_level": "INFO",
+    "keep_logs_days": 30,
+    "enable_trade_alerts": true
+  },
+  "notifications": {
+    "email_alerts": false,
+    "email_address": "your-email@example.com",
+    "discord_webhook": null,
+    "telegram_bot_token": null,
+    "telegram_chat_id": null
+  },
+  "risk_management": {
+    "daily_loss_limit": 500,
+    "weekly_loss_limit": 2000,
+    "pause_trading_on_limit": true
+  }
+}
